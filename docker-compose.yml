@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: club-postgres
+    environment:
+      POSTGRES_DB: club
+      POSTGRES_USER: club
+      POSTGRES_PASSWORD: club
+    ports:
+      - "5432:5432"
+    volumes:
+      - club_pgdata:/var/lib/postgresql/data
+volumes:
+  club_pgdata:
