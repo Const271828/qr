@@ -2,6 +2,7 @@ package com.example.qr.controller;
 
 import com.example.qr.dto.ParticipantRequest;
 import com.example.qr.dto.ParticipantResponse;
+import com.example.qr.dto.QrCodeHistoryResponse;
 import com.example.qr.dto.QrCodeResponse;
 import com.example.qr.service.ParticipantService;
 import org.springframework.http.HttpStatus;
@@ -65,5 +66,10 @@ public class ParticipantController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void revokeQr(@PathVariable Long id) {
         participantService.revokeQr(id);
+    }
+
+    @GetMapping("/{id}/qr/history")
+    public List<QrCodeHistoryResponse> findAllQrCodes(@PathVariable Long id) {
+        return participantService.findAllQrCodes(id);
     }
 }

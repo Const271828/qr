@@ -91,17 +91,24 @@ POST {{host}}/api/participants/999999/qr
 # 3. ENTRY — ВХОД ПО QR (главная логика!)
 ###############################################
 
-### 3.0 Вход по QR участника #1
+### 3.0.1 Получить текущий QR участника #1
+GET {{host}}/api/participants/1/qr
+
+> {%
+    client.global.set("qrCode", response.body.code);
+%}
+
+### 3.0.2 Вход по полученному QR
 POST {{host}}/api/entry
 Content-Type: {{contentType}}
 
 {
-  "code": "a1b2c3d4-0001-0000-0000-000000000001"
+  "code": "{{qrCode}}"
 }
 
 ### 3.1 Успешный вход (→ 200, тело: fullName + newCode)
 # ВАЖНО: используйте реальный QR, полученный в 2.1 или при создании участника.
-# Здесь — пример: замените на свой UUID.
+# Здесь — пример: замените на свойKs UUID.
 POST {{host}}/api/entry
 Content-Type: {{contentType}}
 
@@ -189,3 +196,9 @@ POST {{host}}/api/participants/1/qr
 
 ###
 POST {{host}}/api/participants/1/qr
+
+### 6.1 Получить историю QR-кодов участника #1
+GET {{host}}/api/participants/1/qr/history
+
+### 6.2 Получить историю QR-кодов несуществующего участника (→ 404)
+GET {{host}}/api/participants/999999/qr/history

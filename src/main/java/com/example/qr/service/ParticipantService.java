@@ -2,6 +2,7 @@ package com.example.qr.service;
 
 import com.example.qr.dto.ParticipantRequest;
 import com.example.qr.dto.ParticipantResponse;
+import com.example.qr.dto.QrCodeHistoryResponse;
 import com.example.qr.dto.QrCodeResponse;
 import com.example.qr.entity.Participant;
 import com.example.qr.entity.QrCode;
@@ -108,5 +109,17 @@ public class ParticipantService {
         p.getQrCodes().stream()
                 .filter(QrCode::isActive)
                 .forEach(qr -> qr.setActive(false));
+    }
+
+    @Transactional(readOnly = true)
+    public List<QrCodeHistoryResponse> findAllQrCodes(Long participantId) {
+        // Проверяем, что участник существует (иначе 404)
+        participantRepository.findById(participantId)
+                .orElseThrow(() -> new ParticipantNotFoundException(participantId));
+
+        // Возвращаем все коды (и активные, и неактивные)
+        return qrCodeRepository.findByParticipantIdOrderByIdDesc(participantId).stream()
+                .map(qr -> new QrCodeHistoryResponse(qr.getCode(), qr.isActive()))
+                .toList();
     }
 }

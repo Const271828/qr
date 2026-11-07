@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,4 +19,7 @@ public interface QrCodeRepository extends JpaRepository<QrCode, Long> {
 
     @Query("select q from QrCode q where q.participant.id = :participantId and q.active = true")
     Optional<QrCode> findActiveByParticipantId(@Param("participantId") Long participantId);
+
+    List<QrCode> findByParticipantIdOrderByIdDesc(Long participantId);
+
 }
