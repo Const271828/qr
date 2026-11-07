@@ -1,0 +1,204 @@
+### Переменные окружения (если используете IDEA HTTP Client)
+@host = http://localhost:8080
+@contentType = application/json
+
+###############################################
+# 1. PARTICIPANTS — CRUD
+###############################################
+
+### 1.1 Создать участника (успех → 201, тело ParticipantResponse)
+POST {{host}}/api/participants
+Content-Type: {{contentType}}
+
+{
+  "fullName": "Иван Иванов"
+}
+
+> {%
+    client.global.set("participantId", response.body.id);
+%}
+
+### 1.2 Создать участника — пустое имя (валидация → 400)
+POST {{host}}/api/participants
+Content-Type: {{contentType}}
+
+{
+  "fullName": ""
+}
+
+### 1.3 Создать участника — null (валидация → 400)
+POST {{host}}/api/participants
+Content-Type: {{contentType}}
+
+{
+  "fullName": null
+}
+
+### 1.4 Создать участника — слишком длинное имя (валидация → 400, если добавили @Size)
+POST {{host}}/api/participants
+Content-Type: {{contentType}}
+
+{
+  "fullName": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+}
+
+### 1.5 Список всех участников (→ 200, массив)
+GET {{host}}/api/participants
+
+### 1.6 Получить участника по ID (→ 200)
+GET {{host}}/api/participants/{{participantId}}
+
+### 1.7 Получить несуществующего участника (→ 404)
+GET {{host}}/api/participants/999999
+
+### 1.8 Обновить участника (→ 200)
+PUT {{host}}/api/participants/{{participantId}}
+Content-Type: {{contentType}}
+
+{
+  "fullName": "Иван Петров"
+}
+
+### 1.9 Обновить несуществующего (→ 404)
+PUT {{host}}/api/participants/999999
+Content-Type: {{contentType}}
+
+{
+  "fullName": "Призрак"
+}
+
+### 1.10 Удалить участника (→ 204)
+DELETE {{host}}/api/participants/{{participantId}}
+
+### 1.11 Удалить несуществующего (→ 404)
+DELETE {{host}}/api/participants/999999
+
+###############################################
+# 2. QR — ВЫДАЧА И ПЕРЕВЫПУСК
+###############################################
+
+### 2.1 Перевыпустить QR участнику (→ 200, тело: UUID)
+POST {{host}}/api/participants/{{participantId}}/qr
+
+> {%
+    client.global.set("qrCode", response.body);
+%}
+
+### 2.2 Перевыпустить QR несуществующему участнику (→ 404)
+POST {{host}}/api/participants/999999/qr
+
+###############################################
+# 3. ENTRY — ВХОД ПО QR (главная логика!)
+###############################################
+
+### 3.0.1 Получить текущий QR участника #1
+GET {{host}}/api/participants/1/qr
+
+> {%
+    client.global.set("qrCode", response.body.code);
+%}
+
+### 3.0.2 Вход по полученному QR
+POST {{host}}/api/entry
+Content-Type: {{contentType}}
+
+{
+  "code": "{{qrCode}}"
+}
+
+### 3.1 Успешный вход (→ 200, тело: fullName + newCode)
+# ВАЖНО: используйте реальный QR, полученный в 2.1 или при создании участника.
+# Здесь — пример: замените на свойKs UUID.
+POST {{host}}/api/entry
+Content-Type: {{contentType}}
+
+{
+  "code": "{{qrCode}}"
+}
+
+### 3.2 Повторный вход тем же QR (→ 403 EntryDeniedException)
+# После 3.1 старый код уже погашен — этот запрос должен вернуть 403
+POST {{host}}/api/entry
+Content-Type: {{contentType}}
+
+{
+  "code": "{{qrCode}}"
+}
+
+### 3.3 Вход с несуществующим UUID (→ 403)
+POST {{host}}/api/entry
+Content-Type: {{contentType}}
+
+{
+  "code": "00000000-0000-0000-0000-000000000000"
+}
+
+### 3.4 Вход с null (валидация → 400, если добавили @NotNull)
+POST {{host}}/api/entry
+Content-Type: {{contentType}}
+
+{
+  "code": null
+}
+
+### 3.5 Вход с битым UUID (→ 400 HttpMessageNotReadableException)
+POST {{host}}/api/entry
+Content-Type: {{contentType}}
+
+{
+  "code": "not-a-uuid"
+}
+
+### 3.6 Вход с пустым телом (→ 400)
+POST {{host}}/api/entry
+Content-Type: {{contentType}}
+
+{}
+
+###############################################
+# 4. ОБЩИЕ ПРОВЕРКИ
+###############################################
+
+### 4.1 Неверный Content-Type (→ 415 Unsupported Media Type)
+POST {{host}}/api/participants
+Content-Type: text/plain
+
+Иван
+
+### 4.2 Битый JSON (→ 400 HttpMessageNotReadableException)
+POST {{host}}/api/participants
+Content-Type: {{contentType}}
+
+{ "fullName": "Иван", }
+
+
+###############################################
+# 5. QR — CRUD (дополнение)
+###############################################
+
+### 5.1 Получить текущий QR участника (→ 200)
+GET {{host}}/api/participants/1/qr
+
+### 5.2 Получить QR несуществующего участника (→ 404)
+GET {{host}}/api/participants/999999/qr
+
+### 5.3 Погасить QR участника (→ 204)
+DELETE {{host}}/api/participants/1/qr
+
+### 5.4 После погашения — получить QR (→ 404, нет активного)
+GET {{host}}/api/participants/1/qr
+
+### 5.5 Погасить QR несуществующего (→ 404)
+DELETE {{host}}/api/participants/999999/qr
+
+### 5.6 Перевыпустить QR дважды подряд (→ 200 оба раза, но в БД один активный)
+POST {{host}}/api/participants/1/qr
+
+###
+POST {{host}}/api/participants/1/qr
+
+### 6.1 Получить историю QR-кодов участника #1
+GET {{host}}/api/participants/1/qr/history
+
+### 6.2 Получить историю QR-кодов несуществующего участника (→ 404)
+GET {{host}}/api/participants/999999/qr/history
